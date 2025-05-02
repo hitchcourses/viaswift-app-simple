@@ -1,0 +1,24 @@
+{
+  "appId": "io.viaswift.app",
+  "appName": "ViaSwift",
+  "webDir": "dist",
+  "bundledWebRuntime": true,
+  "appVersion": "1.0.0",
+  "appBuild": "1",
+  "plugins": {
+    "SplashScreen": {
+      "launchShowDuration": 3000,
+      "backgroundColor": "#222222",
+      "androidSplashResourceName": "splash",
+      "androidScaleType": "CENTER_CROP"
+    },
+    "Geolocation": {
+      "locationWhenInUsePermissionDescription": "We need your location to find rides and deliveries near you.",
+      "locationAlwaysPermissionDescription": "We need your location to track rides and deliveries."
+    },
+    "LocalNotifications": {
+      "smallIcon": "ic_stat_notification",
+      "iconColor": "#FF9800"
+    }
+  }
+}

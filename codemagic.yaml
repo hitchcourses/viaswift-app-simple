@@ -1,0 +1,98 @@
+# Configuration for Codemagic CI/CD
+workflows:
+  android-workflow:
+    name: ViaSwift Android App
+    instance_type: mac_mini_m1
+    environment:
+      vars:
+        FIREBASE_PROJECT_ID: $FIREBASE_PROJECT_ID
+        FIREBASE_API_KEY: $FIREBASE_API_KEY
+        GOOGLE_MAPS_API_KEY: $GOOGLE_MAPS_API_KEY
+      node: 18.18.2
+    cache:
+      cache_paths:
+        - ~/.npm
+        - ~/.gradle
+    triggering:
+      events:
+        - push
+        - tag
+      branch_patterns:
+        - pattern: main
+          include: true
+      tag_patterns:
+        - pattern: v*.*.*
+          include: true
+    scripts:
+      - name: Install npm dependencies
+        script: |
+          npm ci
+      - name: Setup Android Gradle
+        script: |
+          chmod +x ./setup-android-gradle.sh
+          ./setup-android-gradle.sh
+      - name: Prepare build directory
+        script: |
+          chmod +x ./fixed-appflow-build.sh
+          ./fixed-appflow-build.sh
+      - name: Build Android app
+        script: |
+          cd android
+          # Use a more robust gradle build command with retry capability
+          for attempt in $(seq 1 3); do
+            ./gradlew assembleRelease && break
+            echo "Gradle build failed, retrying... (attempt $attempt/3)"
+            sleep 5
+          done
+    artifacts:
+      - android/app/build/outputs/**/*.apk
+      - android/app/build/outputs/**/*.aab
+
+  ios-workflow:
+    name: ViaSwift iOS App
+    instance_type: mac_mini_m1
+    environment:
+      vars:
+        FIREBASE_PROJECT_ID: $FIREBASE_PROJECT_ID
+        FIREBASE_API_KEY: $FIREBASE_API_KEY
+        GOOGLE_MAPS_API_KEY: $GOOGLE_MAPS_API_KEY
+        BUNDLE_ID: "io.viaswift.app"
+        XCODE_SCHEME: "App"
+      node: 18.18.2
+      xcode: latest
+      cocoapods: default
+    cache:
+      cache_paths:
+        - ~/.npm
+    triggering:
+      events:
+        - push
+        - tag
+      branch_patterns:
+        - pattern: main
+          include: true
+      tag_patterns:
+        - pattern: v*.*.*
+          include: true
+    scripts:
+      - name: Install npm dependencies
+        script: |
+          npm ci
+      - name: Prepare build directory
+        script: |
+          chmod +x ./fixed-appflow-build.sh
+          ./fixed-appflow-build.sh
+      - name: Prepare iOS build
+        script: |
+          npx cap add ios
+          npx cap sync ios
+      - name: Install iOS dependencies
+        script: |
+          cd ios/App
+          pod install
+      - name: iOS build
+        script: |
+          cd ios/App
+          xcodebuild -workspace App.xcworkspace -scheme "$XCODE_SCHEME" -configuration Release archive -archivePath "$XCODE_SCHEME.xcarchive"
+    artifacts:
+      - ios/App/*.xcarchive
